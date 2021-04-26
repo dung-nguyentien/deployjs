@@ -2,10 +2,11 @@
   "name": "deployerjs",
   "version": "1.0.0",
   "scripts": {
-    "start": "tsc && node test.js"
+    "start": "tsc && node dist/test.js"
   },
   "dependencies": {
     "orchestrator": "^0.3.8",
+    "reflect-metadata": "^0.1.13",
     "ssh2": "^0.8.9"
   },
   "devDependencies": {

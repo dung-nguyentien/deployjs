@@ -1,4 +1,4 @@
-import Deployer from './src/deployer';
+import {Deployer} from './deployer';
 
 let deployer = new Deployer();
 deployer.before('init', () => {
