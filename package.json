@@ -1,0 +1,15 @@
+{
+  "name": "deployerjs",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "tsc && node test.js"
+  },
+  "dependencies": {
+    "orchestrator": "^0.3.8",
+    "ssh2": "^0.8.9"
+  },
+  "devDependencies": {
+    "@types/ssh2": "^0.5.46",
+    "typescript": "^4.2.3"
+  }
+}
