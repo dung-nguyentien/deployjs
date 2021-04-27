@@ -1,10 +1,9 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import {ConfigOption} from "../interfaces/config-option";
 
-export const config = {
+export const config: ConfigOption = {
     rootPath: null,
-    taskPath: () => {
-        return path.join(config.rootPath, 'src/tasks');
-    },
-    tasks: []
+    tasks: [],
+    client: {
+
+    }
 };

@@ -1,7 +1,7 @@
 import {Orchestrator} from '../helpers/orchestrator';
 import {config} from '../config/config';
 import * as fs from "fs";
-import {camelToSnakeCase} from '../helpers/ultil.helper';
+import {camelToSnakeCase, taskPath} from '../helpers/ultil.helper';
 
 export default class TaskManager {
     private orchestrator: Orchestrator = new Orchestrator();
@@ -10,11 +10,11 @@ export default class TaskManager {
     }
 
     public loadTasks() {
-        const taskPath = config.taskPath();
-        let files = fs.readdirSync(taskPath);
+        const path = taskPath();
+        let files = fs.readdirSync(path);
         for (let file of files) {
             if (file.endsWith('.js')) {
-                let taskClass = require(taskPath + '\\' + file).default;
+                let taskClass = require(path + '\\' + file).default;
                 let task = new taskClass();
                 task.deployer = this;
                 config.tasks.forEach((t) => {

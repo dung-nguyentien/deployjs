@@ -7,7 +7,8 @@
   "dependencies": {
     "orchestrator": "^0.3.8",
     "reflect-metadata": "^0.1.13",
-    "ssh2": "^0.8.9"
+    "ssh2": "^0.8.9",
+    "tmp": "^0.2.1"
   },
   "devDependencies": {
     "@types/ssh2": "^0.5.46",

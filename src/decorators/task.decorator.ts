@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import {TaskOption} from '../config/task-option';
+import {TaskOption} from '../interfaces/task-option';
 import {config} from '../config/config';
 
 export function Task(option: TaskOption = null): any {

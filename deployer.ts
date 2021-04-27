@@ -1,25 +1,22 @@
 import TaskManager from './src/core/task-manager';
 import {config} from './src/config/config';
-import * as fs from 'fs';
-import {BaseTask} from './src/core/base-task';
-import {camelToSnakeCase} from './src/helpers/ultil.helper';
+import {ProjectManager} from './src/core/project-manager';
 
 export class Deployer {
     public taskManager = new TaskManager();
+    public projectManager = new ProjectManager();
+    public currentConfig: any = {};
 
     public constructor() {
         this.createConfig();
         this.taskManager.loadTasks();
         this.taskManager.registerTasks();
+        this.projectManager.loadProjects();
+        this.projectManager.registerProjects();
     }
 
     public createConfig() {
         config.rootPath = __dirname;
-    }
-
-
-    public loadProjects() {
-
     }
 
     public init() {
@@ -41,4 +38,5 @@ export class Deployer {
     public after(event: string, callback) {
         this.taskManager.after(event, callback);
     }
+
 }
