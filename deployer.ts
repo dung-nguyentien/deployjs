@@ -27,8 +27,8 @@ export class Deployer {
         this.taskManager.task(name, action);
     }
 
-    public run(name) {
-        this.taskManager.run(name);
+    async run(name) {
+        await this.taskManager.run(name);
     }
 
     public before(event: string, callback) {

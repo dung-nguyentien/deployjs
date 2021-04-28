@@ -51,8 +51,8 @@ export default class TaskManager {
         this.orchestrator.add(name, action);
     }
 
-    public run(name) {
-        this.orchestrator.run(name);
+    async run(name) {
+        await this.orchestrator.run(name);
     }
 
     public before(event: string, callback) {

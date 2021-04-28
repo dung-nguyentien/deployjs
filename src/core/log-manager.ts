@@ -12,6 +12,10 @@ export class LogManager {
         console.log(message);
     }
 
+    public warning(message){
+        console.warn(message);
+    }
+
     public error(message) {
         console.error(message);
     }

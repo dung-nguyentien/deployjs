@@ -5,51 +5,7 @@ import * as path from 'path';
 import * as tmp from 'tmp';
 
 export default class Git extends BaseTask {
-
     @Task()
-    async setupWorkspace() {
-        const {keepWorkspace, workspace, shallowClone} = this.config;
-
-        this.log.info('Setup workspace...');
-        if (workspace) {
-            this.config.workspace = workspace;
-        }
-
-        if (shallowClone) {
-            const tmpDir = await tmp.dir({mode: '0755'});
-            // eslint-disable-next-line no-param-reassign
-            this.config.workspace = tmpDir.path;
-
-            if (workspace) {
-                this.log.info(`Warning: Workspace path from config ("${workspace}") is being ignored, when shallowClone: true`);
-            }
-
-            this.log.info(`Temporary workspace created: "${this.config.workspace}"`);
-        }
-
-        if (!this.config.workspace || !fs.existsSync(this.config.workspace)) {
-            throw new Error(
-                `Workspace dir is required. Current value is: ${this.config.workspace}`
-            );
-        }
-
-        if (!keepWorkspace && path.resolve(this.config.workspace) === process.cwd()) {
-            throw new Error(
-                'Workspace should be a temporary directory. To use current working directory set keepWorkspace: true'
-            );
-        }
-
-        this.log.info('Workspace ready.');
-    }
-
-    private allowInitGit() {
-        return this.config.repositoryUrl;
-    }
-
-    @Task({
-        after: 'git:setup-workspace',
-        allowRunAfter: 'allowInitGit'
-    })
     async init() {
         this.log.info(`Initialize local repository in ${this.config.workspace}`);
         await this.execLocal('git init', {cwd: this.config.workspace});
