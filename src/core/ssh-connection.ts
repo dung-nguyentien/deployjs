@@ -1,6 +1,6 @@
 import {Client, ClientChannel, ConnectConfig, SFTPWrapper} from 'ssh2';
 
-export default class Connection {
+export default class SshConnection {
     private connection: Client;
 
     async open(config: ConnectConfig) {

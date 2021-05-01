@@ -1,5 +1,7 @@
-import {Deployer} from "../../deployer";
+import {Deployer} from '../../deployer';
 
 export abstract class BaseProject {
     public deployer: Deployer;
+
+    abstract config();
 }
