@@ -9,7 +9,7 @@ export function throwError(message: string) {
 
 }
 
-export function taskPath() {
+export function getTaskPath() {
     return path.join(config.rootPath, 'src/tasks');
 }
 

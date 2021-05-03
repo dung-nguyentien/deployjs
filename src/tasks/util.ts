@@ -1,5 +1,5 @@
 import {BaseTask} from '../core/base-task';
 
-export default class Util extends BaseTask {
+export class Util extends BaseTask {
 
 }

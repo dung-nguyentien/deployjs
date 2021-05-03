@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as tmp from 'tmp';
 
-export default class Git extends BaseTask {
+export class Git extends BaseTask {
     @Task()
     async init() {
         this.log.info(`Initialize local repository in ${this.config.workspace}`);
@@ -35,24 +35,20 @@ export default class Git extends BaseTask {
     })
     async addRemote() {
         this.log.info('List local remotes.');
-
         const res = await this.execLocal('git remote', {
             cwd: this.config.workspace
         });
-
-        const remotes = res.stdout ? res.stdout.split(/\s/) : [];
-        const method = remotes.indexOf('shipit') !== -1 ? 'set-url' : 'add';
+        const remotes = res.split(/\s/);
+        const method = remotes.indexOf('deployer') !== -1 ? 'set-url' : 'add';
 
         this.log.info(
             `Update remote ${this.config.repositoryUrl} to local repository ${this.config.workspace}`
         );
 
-        // Update remote.
         await this.execLocal(
-            `git remote ${method} shipit ${this.config.repositoryUrl}`,
+            `git remote ${method} deployer ${this.config.repositoryUrl}`,
             {cwd: this.config.workspace}
         );
-
         this.log.info('Remote updated.');
     }
 
@@ -60,7 +56,7 @@ export default class Git extends BaseTask {
         after: 'git:add-remote'
     })
     async fetch() {
-        let fetchCommand = 'git fetch shipit --prune';
+        let fetchCommand = 'git fetch deployer --prune';
         const fetchDepth = this.config.shallowClone ? ' --depth=1' : '';
         fetchCommand += `${fetchDepth} && ${fetchCommand} "refs/tags/*:refs/tags/*"`;
         this.log.info('Fetching repository ' + this.config.repositoryUrl);
@@ -103,19 +99,16 @@ export default class Git extends BaseTask {
             }
         );
 
-        const isBranch = !!res.stdout;
+        const isBranch = !!res;
 
         if (!isBranch) {
             this.log.info('No branch, no merge.');
             return;
         }
-
         this.log.info('Commit-ish is a branch, merging...');
-
-        await this.execLocal(`git merge shipit/${this.config.branch}`, {
+        await this.execLocal(`git merge deployer/${this.config.branch}`, {
             cwd: this.config.workspace
         });
-
         this.log.info('Branch merged.');
     }
 

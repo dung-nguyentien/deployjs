@@ -1,4 +1,4 @@
-import {LogManager} from "../core/log-manager";
+import {LogManager} from '../core/log-manager';
 
 export class Orchestrator {
     public queues = [];
@@ -27,7 +27,7 @@ export class Orchestrator {
         if (!queue) {
             throw new TypeError('Can not find task: \t' + name);
         }
-        LogManager.instance.info('Run task ' + name);
+        LogManager.instance.success('Run task ', name);
         await this.emit(`before:${name}`);
         await queue.action();
         await this.emit(`after:${name}`);

@@ -11,14 +11,15 @@ export abstract class BaseTask {
     }
 
     public copyRemote(from, to, option?) {
-
+        return this.deployer.copyRemote(from, to, option);
     }
 
     public execRemote(command, option?: any) {
-        return {} as any;
+        this.log.info('Run command', command);
+        return this.deployer.execRemote(command, option);
     }
 
     public execLocal(command, option?: any) {
-        return {} as any;
+        return this.deployer.execLocal(command, option);
     }
 }

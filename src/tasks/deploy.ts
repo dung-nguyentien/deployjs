@@ -7,9 +7,9 @@ import {equalValues, formatString} from '../helpers/ultil.helper';
 import * as moment from 'moment';
 import * as rmfr from 'rmfr';
 
-export default class Deploy extends BaseTask {
+export class Deploy extends BaseTask {
     async getRevision(releaseDir) {
-        const file = path.join(this.config.releasesPath, releaseDir, 'REVISION');
+        const file = path.join(this.config.releasePath, releaseDir, 'REVISION');
         const response = await this.execRemote(
             `if [ -f ${file} ]; then cat ${file} 2>/dev/null; fi;`
         );
@@ -18,14 +18,7 @@ export default class Deploy extends BaseTask {
 
     async getCurrentReleaseDirname() {
         const results =
-            (await this.execRemote(
-                formatString(
-                    'if [ -h %s ]; then readlink %s; fi',
-                    this.config.currentPath,
-                    this.config.currentPath
-                )
-            )) || [];
-
+            (await this.execRemote(`if [ -h ${this.config.currentPath} ]; then readlink ${this.config.currentPath}; fi`)) || [];
         const releaseDirnames = results.map(result => {
             if (!result.stdout) return null;
             const target = result.stdout.replace(/\n$/, '');
@@ -49,7 +42,8 @@ export default class Deploy extends BaseTask {
         after: 'init'
     })
     async init() {
-
+        this.config.currentPath = path.join(this.config.deployTo, 'current')
+        this.config.releasePath = path.join(this.config.deployTo, 'releases');
     }
 
     @Task({
@@ -65,7 +59,6 @@ export default class Deploy extends BaseTask {
 
         if (shallowClone) {
             const tmpDir = await tmp.dir({mode: '0755'});
-            // eslint-disable-next-line no-param-reassign
             this.config.workspace = tmpDir.path;
 
             if (workspace) {
@@ -74,8 +67,11 @@ export default class Deploy extends BaseTask {
 
             this.log.info(`Temporary workspace created: "${this.config.workspace}"`);
         }
-
-        if (!this.config.workspace || !fs.existsSync(this.config.workspace)) {
+        if (!fs.existsSync(this.config.workspace)) {
+            this.log.info('Create workspace folder: ', this.config.workspace)
+            fs.mkdirSync(this.config.workspace, {recursive: true});
+        }
+        if (!this.config.workspace) {
             throw new Error(
                 `Workspace dir is required. Current value is: ${this.config.workspace}`
             );
@@ -94,7 +90,7 @@ export default class Deploy extends BaseTask {
         after: 'deploy:init'
     })
     async fetch() {
-        if (this.config.respositoryUrl) {
+        if (this.config.repositoryUrl) {
             await this.deployer.run('git:init');
         }
     }
@@ -110,53 +106,18 @@ export default class Deploy extends BaseTask {
     @Task({
         before: 'deploy:update'
     })
-    async copyPreviousRelease() {
-        const copyParameter = this.config.copy || '-a';
-        if (!this.config.previousRelease || this.config.copy === false) return;
-        this.log.info(`Copy previous release to ${this.config.releasePath}`);
-        await this.execRemote(
-            formatString(
-                'cp %s %s/. %s',
-                copyParameter,
-                path.join(this.config.releasePath, this.config.previousRelease),
-                this.config.releasePath
-            )
-        );
-    }
-
-    @Task({
-        after: 'deploy:copy-previous-release'
-    })
-    async createReleasePath() {
-        this.config.releaseDirname = moment.utc().format('YYYYMMDDHHmmss');
-        this.config.releasePath = path.join(this.config.releasePath, this.config.releaseDirname);
-        this.log.info(`Create release path ${this.config.releasePath}`);
-        await this.execRemote(`mkdir -p ${this.config.releasePath}`);
-        this.log.info('Release path created.');
-    }
-
-    @Task({
-        after: 'deploy:create-release-path'
-    })
-    async remoteCopy() {
-        const options = this.config.deploy?.remoteCopy || {
-            rsync: '--del'
-        };
-        const rsyncFrom = this.config.rsyncFrom || this.config.workspace;
-        const uploadDirPath = path.resolve(rsyncFrom, this.config.dirToCopy || '');
-
-        this.log.info('Copy project to remote servers.');
-
-        let srcDirectory = `${uploadDirPath}/`;
-        if (options.copyAsDir) {
-            srcDirectory = srcDirectory.slice(0, -1);
+    async setPreviousRelease() {
+        this.config.previousRelease = null;
+        const currentReleaseDirname = await this.getCurrentReleaseDirname();
+        if (currentReleaseDirname) {
+            this.log.info('Previous release found.');
+            this.config.previousRelease = currentReleaseDirname;
+            console.log(currentReleaseDirname);
         }
-        await this.copyRemote(srcDirectory, this.config.releasePath, options);
-        this.log.info('Finished copy.');
     }
 
     @Task({
-        after: 'deploy:remote-copy'
+        after: 'deploy:set-previous-release'
     })
     async setPreviousRevision() {
         this.config.previousRevision = null;
@@ -172,17 +133,48 @@ export default class Deploy extends BaseTask {
     @Task({
         after: 'deploy:set-previous-revision'
     })
-    async setPreviousRelease() {
-        this.config.previousRelease = null;
-        const currentReleaseDirname = await this.getCurrentReleaseDirname();
-        if (currentReleaseDirname) {
-            this.log.info('Previous release found.');
-            this.config.previousRelease = currentReleaseDirname;
-        }
+    async createReleasePath() {
+        this.config.releaseDirname = moment.utc().format('YYYYMMDDHHmmss');
+        this.config.currentReleasePath = path.join(this.config.releasePath, this.config.releaseDirname);
+        this.log.info(`Create release path ${this.config.currentReleasePath}`);
+        await this.execRemote(`mkdir -p ${this.config.currentReleasePath}`);
+        this.log.info('Release path created.');
     }
 
     @Task({
-        after: 'deploy:set-previous-release'
+        after: 'deploy:create-release-path'
+    })
+    async copyPreviousRelease() {
+        const copyParameter = this.config.copy || '-a';
+        if (!this.config.previousRelease || this.config.copy === false) return;
+        this.log.info(`Copy previous release to ${this.config.currentReleasePath}`);
+        await this.execRemote(`cp ${copyParameter} ${path.join(this.config.releasePath, this.config.previousRelease)}/. ${this.config.currentReleasePath}`);
+    }
+
+    @Task({
+        after: 'deploy:copy-previous-release'
+    })
+    async remoteCopy() {
+        const options = this.config.deploy?.remoteCopy || {
+            rsync: '--del'
+        };
+        const rsyncFrom = this.config.rsyncFrom || this.config.workspace;
+        const uploadDirPath = path.resolve(rsyncFrom, this.config.dirToCopy || '');
+
+        this.log.info('Copy project to remote servers.');
+
+        let srcDirectory = `${uploadDirPath}/`;
+        if (options.copyAsDir) {
+            srcDirectory = srcDirectory.slice(0, -1);
+        }
+        await this.execRemote(`mkdir -p ${this.config.deployTo}`);
+        await this.copyRemote(srcDirectory, this.config.currentReleasePath, options);
+        this.log.info('Finished copy.');
+    }
+
+
+    @Task({
+        after: 'deploy:remote-copy'
     })
     async setCurrentRevision() {
         this.log.info('Setting current revision and creating revision file.');
@@ -193,11 +185,10 @@ export default class Deploy extends BaseTask {
                 cwd: this.config.workspace
             }
         );
-
-        this.config.currentRevision = response.stdout.trim();
+        this.config.currentRevision = response.trim();
         await this.execRemote(
             `echo "${this.config.currentRevision}" > ${path.join(
-                this.config.releasePath,
+                this.config.currentReleasePath,
                 'REVISION'
             )}`
         );
@@ -219,9 +210,9 @@ export default class Deploy extends BaseTask {
         after: 'deploy:update'
     })
     async publish() {
-        this.log.info(`Publishing release ${this.config.releasePath}`);
+        this.log.info(`Publishing release ${this.config.currentReleasePath}`);
         const relativeReleasePath = path.join('releases', this.config.releaseDirname);
-        const res = await this.execRemote(
+        const results = await this.execRemote(
             'cd ' +
             this.config.deployTo +
             ' && ' +
@@ -234,18 +225,17 @@ export default class Deploy extends BaseTask {
             'mv -fT current_tmp current; ' +
             'fi'
         );
-        const failedresult =
-            res && res.stdout
-                ? res.stdout.filter(r => r.indexOf('could not make symlink') > -1)
-                : [];
-        if (failedresult.length && failedresult.length > 0) {
-            this.log.warning(
-                `Symbolic link at remote not made, as something already exists at ${path.join(
-                    this.config.deployTo,
-                    'current'
-                )}`
-            );
+        for (let result of results) {
+            if (result.stdout.includes('could not make symlink')) {
+                this.log.warning(
+                    `Symbolic link at remote not made, as something already exists at ${path.join(
+                        this.config.deployTo,
+                        'current'
+                    )}`
+                );
+            }
         }
+
         this.log.info('Release published.');
     }
 
@@ -254,8 +244,8 @@ export default class Deploy extends BaseTask {
     })
     async clean() {
         const command =
-            `(ls -rd ${this.config.releasesPath}/*|head -n ${this.config.keepReleases};` +
-            `ls -d ${this.config.releasesPath}/*)|sort|uniq -u|xargs rm -rf`;
+            `(ls -rd ${this.config.releasePath}/*|head -n ${this.config.keepReleases || 5};` +
+            `ls -d ${this.config.releasePath}/*)|sort|uniq -u|xargs rm -rf`;
         await this.execRemote(command);
     }
 
